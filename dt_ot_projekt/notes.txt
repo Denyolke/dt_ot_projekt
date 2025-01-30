@@ -1,0 +1,8 @@
+tilmap calculations:
+
+columns = screenHeight/tileSize
+rows =    screenWidth/tileSize
+
+
+versioning:
+v(mainversion.monthandday.thenumberofthecommitthatday)
