@@ -5,27 +5,34 @@ from sprites import *
 from config import *
 import sys
 
+
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((screenWidth,screenHeight))
+        self.screen = pygame.display.set_mode((screenWidth, screenHeight))
         self.clock = pygame.time.Clock()
         self.running = True
 
+        self.charachterSpritesheet = SpriteSheet('img/walk.png')
+        self.terrainSpritesheet = SpriteSheet('img/terrain.png')
+        self.enemySpritesheet = SpriteSheet('img/enemy.png')
 
     def createTilemap(self):
         for i, row in enumerate(tilemap):
-             for j, column in enumerate(row):
-                 if column == "B":
-                     Block(self,j,i)
-                 if column == "P":
-                     Player(self,j,i)
+            for j, column in enumerate(row):
+                Ground(self, j, i)
+                if column == "B":
+                    Block(self, j, i)
+                if column == "P":
+                    Player(self, j, i)
+                if column == "E":
+                    Enemy(self, j, i)
 
     #newgame
     def new(self):
 
         self.playing = True
-        self.all_sprites = pygame.sprite.LayeredUpdates() #enables update all sprites at once
+        self.all_sprites = pygame.sprite.LayeredUpdates()  #enables update all sprites at once
         self.blocks = pygame.sprite.LayeredUpdates()
         self.enemies = pygame.sprite.LayeredUpdates()
         self.attacks = pygame.sprite.LayeredUpdates()
@@ -38,14 +45,19 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False
                 self.playing = False
+
     def update(self):
-        self.all_sprites.update() #method update from layeredUpdates updates every sprite
+        self.all_sprites.update()  #method update from layeredUpdates updates every sprite
 
     def draw(self):
         self.screen.fill(BLACK)
         self.all_sprites.draw(self.screen)
         self.clock.tick(fps)
-        pygame.display.update() #screen update
+        pygame.display.update()  #screen update
+
+        for sprite in self.all_sprites:
+            if isinstance(sprite, Player):
+                sprite.draw(self.screen)
 
     def main(self):
         #gameloop
@@ -60,6 +72,7 @@ class Game:
 
     def intro_screen(self):
         pass
+
 
 game = Game()
 game.intro_screen()

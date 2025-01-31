@@ -5,4 +5,4 @@ rows =    screenWidth/tileSize
 
 
 versioning:
-v(mainversion.monthandday.thenumberofthecommitthatday)
+v(isReady?.nowversion.monthandday.thenumberofthecommitthatday)
