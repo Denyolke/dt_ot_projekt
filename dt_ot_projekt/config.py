@@ -5,13 +5,14 @@ fps = 60
 print("The tilemaps size should be: ", screenWidth / 32, "x",  screenHeight/ 32, "y")
 
 playerSpeed = 3
-enemySpeed = 2
+enemySpeed = 1
 
 playerLayer = 4
 enemyLayer = 3
 blockLayer = 2
 groundLayer = 1
 
+current_hand = 0
 
 RED = (255,0,0)
 BLACK = (0,0,0)

@@ -13,9 +13,9 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
 
-        self.charachterSpritesheet = SpriteSheet('img/walk.png')
-        self.terrainSpritesheet = SpriteSheet('img/terrain.png')
-        self.enemySpritesheet = SpriteSheet('img/enemy.png')
+        self.charachterSpritesheet = SpriteSheet('assets/img/walk.png')
+        self.terrainSpritesheet = SpriteSheet('assets/img/terrain.png')
+        self.enemySpritesheet = SpriteSheet('assets/img/enemy.png')
 
     def createTilemap(self):
         for i, row in enumerate(tilemap):
@@ -24,7 +24,7 @@ class Game:
                 if column == "B":
                     Block(self, j, i)
                 if column == "P":
-                    Player(self, j, i)
+                    self.player = Player(self, j, i)
                 if column == "E":
                     Enemy(self, j, i)
 
@@ -40,14 +40,24 @@ class Game:
         self.createTilemap()
 
     def events(self):
-        #gameloop events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
                 self.playing = False
 
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    self.player.gun.switch_to_hand(0)  # Earth
+                elif event.key == pygame.K_2:
+                    self.player.gun.switch_to_hand(1)  # Fire
+                elif event.key == pygame.K_3:
+                    self.player.gun.switch_to_hand(2)  # Water
+                elif event.key == pygame.K_4:
+                    self.player.gun.switch_to_hand(3)  # Wind
+
+
     def update(self):
-        self.all_sprites.update()  #method update from layeredUpdates updates every sprite
+        self.all_sprites.update()
 
     def draw(self):
         self.screen.fill(BLACK)
@@ -66,6 +76,7 @@ class Game:
             self.update()
             self.draw()
         self.running = False
+
 
     def game_over(self):
         pass
