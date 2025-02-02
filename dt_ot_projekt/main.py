@@ -47,13 +47,13 @@ class Game:
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_1:
-                    self.player.gun.switch_to_hand(0)  # Earth
+                    self.player.gun.switch_to_hand(0)
                 elif event.key == pygame.K_2:
-                    self.player.gun.switch_to_hand(1)  # Fire
+                    self.player.gun.switch_to_hand(1)
                 elif event.key == pygame.K_3:
-                    self.player.gun.switch_to_hand(2)  # Water
+                    self.player.gun.switch_to_hand(2)
                 elif event.key == pygame.K_4:
-                    self.player.gun.switch_to_hand(3)  # Wind
+                    self.player.gun.switch_to_hand(3)
 
 
     def update(self):
