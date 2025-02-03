@@ -20,7 +20,7 @@ The premise of the game is to get the right weapons with the right items to be a
 coins through your run which is used to buy permanent upgrades, and to unlock characters.
 
 <p align="center">
-  <img src="" alt="Vampire Survivors">
+  <img src="https://github.com/Denyolke/dt_ot_projekt/blob/main/dt_ot_projekt/vampiresurvivors.jpg" alt="Vampire Survivors">
   <br>
   <em>Figure 1 Preview of Vampire Survivors</em>
 </p>
@@ -53,7 +53,7 @@ The player is being attacked by different kind of enemies spawning on the edge o
 - **Gun**: The player has a "gun" but not any kind, its his elemental powers. He can switch between them using the number keys, and each one has their own gimmick to play with.
 
 <p align="center">
-  <img src="" alt="Gun">
+  <img src="https://github.com/Denyolke/dt_ot_projekt/blob/main/dt_ot_projekt/Gun.PNG" alt="Gun">
   <br>
   <em>Figure 3 Preview of the Player and his Gun</em>
 </p>
@@ -64,7 +64,7 @@ The player is being attacked by different kind of enemies spawning on the edge o
 ### **Design**
 The game hasnt used in its making any third party Software, so the design can be a bit lackluster, but nonetheless functional and passes to the vibe of the game.
 <p align="center">
-  <img src="" alt="BossFight">
+  <img src="https://github.com/Denyolke/dt_ot_projekt/blob/main/dt_ot_projekt/BossFight.PNG" alt="BossFight">
   <br>
   <em>Figure 3 Preview of the Boss Fight</em>
 </p>
