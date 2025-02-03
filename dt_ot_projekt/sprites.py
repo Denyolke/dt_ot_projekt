@@ -33,32 +33,22 @@ class HealthBar(pygame.sprite.Sprite):
             pygame.image.load('assets/img/4Heart.png').convert_alpha(),
         ]
 
-
         for img in original_images:
             original_size = img.get_size()
             scaled_size = (int(original_size[0] * scale_factor), int(original_size[1] * scale_factor))
             scaled_img = pygame.transform.scale(img, scaled_size)
             self.health_images.append(scaled_img)
 
-        self.max_health = len(self.health_images) - 1
-        self.current_health = self.max_health
-
-        self.image = self.health_images[self.current_health]
+        self.image = self.health_images[player_current_health]
         self.rect = self.image.get_rect()
         self.rect.x = 20
         self.rect.y = 20
 
-    def take_damage(self, amount):
-        self.current_health -= amount
-        if self.current_health < 0:
-            self.current_health = 0
-            print("Game Over!")
-
-        self.image = self.health_images[self.current_health]
-
     def update(self):
+        self.image = self.health_images[player_current_health]
         self.rect.x = 20
         self.rect.y = 20
+
 
 
 class Gun(pygame.sprite.Sprite):
@@ -75,7 +65,18 @@ class Gun(pygame.sprite.Sprite):
             pygame.image.load('assets/img/waterHand.png').convert_alpha(),
             pygame.image.load('assets/img/windHand.png').convert_alpha()
         ]
-        self.current_hand = 0  # Start with Earth hand
+
+        self.sounds = {
+            0: pygame.mixer.Sound("assets/sound/rocksound.mp3"),
+            1: pygame.mixer.Sound("assets/sound/firesound.mp3"),
+            2: pygame.mixer.Sound("assets/sound/watersound.mp3"),
+            3: pygame.mixer.Sound("assets/sound/windsound.mp3")
+        }
+
+        for sound in self.sounds.values():
+            sound.set_volume(0.3)
+
+        self.current_hand = 0
         self.image_original = self.hands[self.current_hand]
         self.image = self.image_original
         self.radius = 40
@@ -89,34 +90,34 @@ class Gun(pygame.sprite.Sprite):
             print("Switch detected (",self.current_hand,")")
     def shoot(self):
         now = pygame.time.get_ticks()
-        if self.current_hand == 3 and now - self.last_shot > airAttackSpeed:  # Air hand
+        if self.current_hand == 3 and now - self.last_shot > airAttackSpeed:
             self.last_shot = now
-            print("Shooting air projectile!")
             mouse_x, mouse_y = pygame.mouse.get_pos()
             player_x, player_y = self.player.rect.center
             angle = math.degrees(math.atan2(mouse_y - player_y, mouse_x - player_x))
             AirProjectile(self.game, self.rect.centerx, self.rect.centery, angle)
+            self.sounds[3].play()
 
-        elif self.current_hand == 2 and now - self.last_shot > waterAttackSpeed:  # Water hand
+        elif self.current_hand == 2 and now - self.last_shot > waterAttackSpeed:
             self.last_shot = now
-            print("Creating water attack!")
             WaterAttack(self.game, self.game.player)
+            self.sounds[2].play()
 
-        elif self.current_hand == 1 and now - self.last_shot > fireAttackSpeed:  # Fire hand
+        elif self.current_hand == 1 and now - self.last_shot > fireAttackSpeed:
             self.last_shot = now
-            print("Shooting fire boomerang!")
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            player_x, player_y = self.rect.center  # Gun position
+            player_x, player_y = self.rect.center
             angle = math.degrees(math.atan2(mouse_y - player_y, mouse_x - player_x))
             FireProjectile(self.game, player_x, player_y, angle)
+            self.sounds[1].play()
 
-        elif self.current_hand == 0 and now - self.last_shot > earthAttackSpeed:  # Earth hand
+        elif self.current_hand == 0 and now - self.last_shot > earthAttackSpeed:
             self.last_shot = now
-            print("Shooting earth projectile!")
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            player_x, player_y = self.rect.center  # Gun position
+            player_x, player_y = self.rect.center
             angle = math.degrees(math.atan2(mouse_y - player_y, mouse_x - player_x))
             EarthProjectile(self.game, player_x, player_y, angle)
+            self.sounds[0].play()
 
     def update_position(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -134,7 +135,7 @@ class Gun(pygame.sprite.Sprite):
         self.update_position()
 
         keys = pygame.mouse.get_pressed()
-        if keys[0]:  # Left mouse button
+        if keys[0]:
             self.shoot()
 
 
@@ -173,10 +174,10 @@ class AirProjectile(pygame.sprite.Sprite):
         hits = pygame.sprite.spritecollide(self, self.game.enemies, False)
         if hits:
             for enemy in hits:
-                enemy.take_damage(self.damage)  # Apply damage to the enemy
+                enemy.take_damage(self.damage)
                 enemy.apply_knockback(
                     self.knockback_strength * self.dx, self.knockback_strength * self.dy
-                )  # Apply knockback
+                )
 
             self.kill()
 
@@ -208,7 +209,6 @@ class WaterAttack(pygame.sprite.Sprite):
 
     def damage_enemies(self):
         for enemy in self.game.enemies:
-            # Check if the enemy is inside the circle
             distance = math.sqrt(
                 (enemy.rect.centerx - self.rect.centerx) ** 2 +
                 (enemy.rect.centery - self.rect.centery) ** 2
@@ -259,12 +259,10 @@ class FireProjectile(pygame.sprite.Sprite):
         self.image = self.frames[self.animation_index]
         self.rect = self.image.get_rect(center=(x, y))
 
-        # Travel calculations
         self.angle = math.radians(angle)
         self.dx = math.cos(self.angle) * self.speed
         self.dy = math.sin(self.angle) * self.speed
 
-        # Position tracking
         self.start_x = x
         self.start_y = y
         self.travelled_distance = 0
@@ -308,16 +306,17 @@ class FireProjectile(pygame.sprite.Sprite):
 
 class EarthProjectile(pygame.sprite.Sprite):
     def __init__(self, game, x, y, angle):
+
         self.game = game
         self.groups = game.all_sprites, game.attacks
         self._layer = skillLayer
         pygame.sprite.Sprite.__init__(self, self.groups)
 
-        # Attributes
-        self.damage = earthProjectileDamage  # Damage dealt by the projectile
-        self.speed = earthProjectileSpeed  # Speed of the projectile
+        self.damage = earthProjectileDamage
+        self.speed = earthProjectileSpeed
 
         self.image_original = pygame.image.load('assets/img/EarthShot.png').convert_alpha()
+
 
 
         self.image = pygame.transform.rotate(self.image_original, -angle)
@@ -331,12 +330,12 @@ class EarthProjectile(pygame.sprite.Sprite):
         self.rect.x += self.dx
         self.rect.y += self.dy
 
-        # Adjust position for camera shifts (if applicable)
         self.rect.x += self.game.player.xChange
         self.rect.y += self.game.player.yChange
 
-        # Check for collision with enemies
         hits = pygame.sprite.spritecollide(self, self.game.enemies, False)
+        block_hits = pygame.sprite.spritecollide(self, self.game.blocks, False)
+
         if hits:
             for enemy in hits:
                 enemy.take_damage(self.damage)
@@ -344,6 +343,9 @@ class EarthProjectile(pygame.sprite.Sprite):
 
         if (self.rect.right < 0 or self.rect.left > screenWidth or
             self.rect.bottom < 0 or self.rect.top > screenHeight):
+            self.kill()
+
+        if block_hits:
             self.kill()
 
 class Enemy(pygame.sprite.Sprite):
@@ -359,9 +361,6 @@ class Enemy(pygame.sprite.Sprite):
         self.width = tileSize
         self.height = tileSize
 
-        self.x_change = 0
-        self.y_change = 0
-
         self.image_original = self.game.enemySpritesheet.get_sprite(3, 2, self.width, self.height)
         self.image_original.set_colorkey(BLACK)
         self.image = self.image_original.copy()
@@ -374,46 +373,33 @@ class Enemy(pygame.sprite.Sprite):
         self.movementLoop = 0
         self.max_travel = random.randint(7, 30)
 
-        self.detection_radius = 150
+        self.detection_radius = 1500
         self.speed = enemySpeed
 
         self.health = enemyHealth
         self.damaged = False
         self.damage_timer = 0
 
+        self.attack_cooldown = 1000
+        self.last_attack_time = 0
+
     def take_damage(self, amount):
         self.health -= amount
-        print(f"Enemy hit remaining health: {self.health}")
+        print(f"Enemy hit! Remaining health: {self.health}")
 
         self.damaged = True
         self.damage_timer = pygame.time.get_ticks()
+
         self.image.fill((255, 0, 0), special_flags=pygame.BLEND_RGBA_MULT)
 
         if self.health <= 0:
+            print("Enemy killed!")
+
+            self.game.last_enemy_position = self.rect.center
+
             self.kill()
-            print("Enemy dead")
-
-    def apply_knockback(self, knockback_x, knockback_y):
-        self.rect.x += knockback_x
-        self.rect.y += knockback_y
-
-    def movement(self):
-        if self.facing == 'left':
-            self.x_change -= self.speed
-            self.movementLoop -= 1
-            if self.movementLoop <= -self.max_travel:
-                self.facing = 'right'
-
-        elif self.facing == 'right':
-            self.x_change += self.speed
-            self.movementLoop += 1
-            if self.movementLoop >= self.max_travel:
-                self.facing = 'left'
 
     def chase_player(self):
-        if not hasattr(self.game, 'player') or self.game.player is None:
-            return False
-
         player = self.game.player
         player_center = player.rect.center
         enemy_center = self.rect.center
@@ -425,37 +411,168 @@ class Enemy(pygame.sprite.Sprite):
 
         if distance_to_player <= self.detection_radius:
             if player.rect.centerx > self.rect.centerx:
-                self.x_change += self.speed
+                self.rect.x += self.speed
             elif player.rect.centerx < self.rect.centerx:
-                self.x_change -= self.speed
+                self.rect.x -= self.speed
 
             if player.rect.centery > self.rect.centery:
-                self.y_change += self.speed
+                self.rect.y += self.speed
             elif player.rect.centery < self.rect.centery:
-                self.y_change -= self.speed
+                self.rect.y -= self.speed
             return True
 
         return False
 
-    def update(self):
-        if not self.chase_player():
-            self.movement()
 
+    def attack_player(self):
+        if pygame.sprite.collide_rect(self, self.game.player):
+            current_time = pygame.time.get_ticks()
+            if current_time - self.last_attack_time >= self.attack_cooldown:
+                self.game.player.take_damage(1)
+                self.last_attack_time = current_time
+
+    def apply_knockback(self, knockback_x, knockback_y):
+        self.rect.x += knockback_x
+        self.rect.y += knockback_y
+
+
+    def update(self):
         if self.damaged:
             if pygame.time.get_ticks() - self.damage_timer > 200:
                 self.damaged = False
                 self.image = self.image_original.copy()
 
-        if self.rect.colliderect(self.game.player.rect):
-            self.game.player.take_damage(1)
-            print("Player hit by enemy!")
 
-        self.rect.x += self.x_change
-        self.rect.y += self.y_change
+        self.chase_player()
+        self.attack_player()
 
 
-        self.x_change = 0
-        self.y_change = 0
+class Bat(pygame.sprite.Sprite):
+    def __init__(self, game, x, y):
+        self.game = game
+        self._layer = enemyLayer
+        self.groups = game.all_sprites, game.enemies
+        pygame.sprite.Sprite.__init__(self, self.groups)
+
+        self.x = x * tileSize
+        self.y = y * tileSize
+
+        self.width = tileSize
+        self.height = tileSize
+
+        self.frames = [
+            pygame.image.load("assets/img/bat1.png").convert_alpha(),
+            pygame.image.load("assets/img/bat2.png").convert_alpha(),
+            pygame.image.load("assets/img/bat3.png").convert_alpha()
+        ]
+        self.animation_index = 0
+        self.image = self.frames[self.animation_index]
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+        self.damaged = False
+        self.damage_timer = 0
+        self.attack_cooldown = 1000
+        self.last_attack_time = 0
+        self.detection_radius = 1500
+        self.speed = enemySpeed + 1
+        self.health = 2
+
+        self.last_drop_chance = 0.4
+
+
+    def attack_player(self):
+        if pygame.sprite.collide_rect(self, self.game.player):
+            current_time = pygame.time.get_ticks()
+            if current_time - self.last_attack_time >= self.attack_cooldown:
+                self.game.player.take_damage(1)
+                self.last_attack_time = current_time
+                print("Bat hit the player!")
+
+    def animate(self):
+        self.animation_index += 0.1
+        if self.animation_index >= len(self.frames):
+            self.animation_index = 0
+        self.image = self.frames[int(self.animation_index)]
+
+    def drop_health_item(self):
+        if random.random() < self.last_drop_chance:
+            HealthItem(self.game, self.rect.centerx, self.rect.centery)
+
+    def take_damage(self, amount):
+        self.health -= amount
+        self.damaged = True
+        self.damage_timer = pygame.time.get_ticks()
+
+        self.image.fill((255, 0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+        if self.health <= 0:
+            self.drop_health_item()
+            self.kill()
+
+
+    def apply_knockback(self, knockback_x, knockback_y):
+        self.rect.x += knockback_x
+        self.rect.y += knockback_y
+
+    def chase_player(self):
+        if not hasattr(self.game, 'player') or self.game.player is None:
+            return False
+
+        player = self.game.player
+        player_center = player.rect.center
+        bat_center = self.rect.center
+
+        distance_to_player = math.sqrt(
+            (player_center[0] - bat_center[0]) ** 2 +
+            (player_center[1] - bat_center[1]) ** 2
+        )
+
+        if distance_to_player <= self.detection_radius:
+            if player.rect.centerx > self.rect.centerx:
+                self.rect.x += self.speed
+            elif player.rect.centerx < self.rect.centerx:
+                self.rect.x -= self.speed
+
+            if player.rect.centery > self.rect.centery:
+                self.rect.y += self.speed
+            elif player.rect.centery < self.rect.centery:
+                self.rect.y -= self.speed
+            return True
+
+        return False
+
+    def update(self):
+        if self.damaged:
+            if pygame.time.get_ticks() - self.damage_timer > 200:  # Stay red for 200ms
+                self.damaged = False
+                self.image = self.frames[int(self.animation_index)]
+
+        self.animate()
+        self.chase_player()
+        self.attack_player()
+
+class HealthItem(pygame.sprite.Sprite):
+    def __init__(self, game, x, y):
+        self.game = game
+        self._layer = blockLayer
+        self.groups = game.all_sprites
+        pygame.sprite.Sprite.__init__(self, self.groups)
+
+        self.image = pygame.image.load('assets/img/health.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (tileSize // 2, tileSize // 2))  # Scale to desired size
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+
+    def update(self):
+        if pygame.sprite.collide_rect(self, self.game.player):
+            global player_current_health
+            if player_current_health < player_max_health:
+                player_current_health += 1
+                print("Player picked up a health item!")
+            self.kill()
+
 
 
 class Player(pygame.sprite.Sprite):
@@ -503,7 +620,6 @@ class Player(pygame.sprite.Sprite):
 
         self.image = self.animations["down"][0]
 
-        # Adjusted hitbox/position (now matches scaled size)
         self.rect = self.image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y
@@ -514,12 +630,15 @@ class Player(pygame.sprite.Sprite):
         self.invulnerable_timer = 0
 
     def take_damage(self, amount):
-        if not self.invulnerable:
-            self.health_bar.take_damage(amount)
-            self.invulnerable = True
-            self.invulnerable_timer = pygame.time.get_ticks()  # Set timer
-            if self.health_bar.current_health == 0:
+        global player_current_health
+        if player_current_health > 0:
+            player_current_health -= amount
+            if player_current_health <= 0:
+                player_current_health = 0
                 print("Game Over!")
+                self.game.playing = False
+                self.game.running = False
+
 
     def extract_sprite(self, x, y):
         full_sprite = self.game.charachterSpritesheet.get_sprite(x, y, 48, 64).convert_alpha()
@@ -653,3 +772,220 @@ class Ground(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y
+
+class StoneGround(pygame.sprite.Sprite):
+    def __init__(self, game, x, y):
+        self.game = game
+        self._layer = groundLayer
+        self.groups = self.game.all_sprites
+        pygame.sprite.Sprite.__init__(self, self.groups)
+        self.x = x*tileSize
+        self.y = y*tileSize
+        self.width = tileSize
+        self.height = tileSize
+
+
+        self.image = self.game.terrainSpritesheet.get_sprite(288,512,self.width,self.height)
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+class Pillar(pygame.sprite.Sprite):
+    def __init__(self, game, x, y):
+        self.game = game
+        self._layer = blockLayer
+        self.groups = self.game.all_sprites, self.game.blocks
+        pygame.sprite.Sprite.__init__(self, self.groups)
+
+        self.x = x*tileSize
+        self.y = y*tileSize
+        self.width = tileSize
+        self.height = tileSize
+
+        self.image = self.game.terrainSpritesheet.get_sprite(928,480,self.width,self.height)
+
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+
+
+class Water(pygame.sprite.Sprite):
+    def __init__(self, game, x, y):
+        self.game = game
+        self._layer = groundLayer
+        self.groups = self.game.all_sprites
+        pygame.sprite.Sprite.__init__(self, self.groups)
+
+        self.x = x * tileSize
+        self.y = y * tileSize
+        self.width = tileSize
+        self.height = tileSize
+
+        self.image = pygame.image.load('assets/img/water1.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (self.width, self.height))  # Scale to tile size
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+
+class Portal(pygame.sprite.Sprite):
+    def __init__(self, game, x, y):
+        self.game = game
+        self._layer = blockLayer
+        self.groups = game.all_sprites, game.portals
+        pygame.sprite.Sprite.__init__(self, self.groups)
+
+        self.frames = [
+            pygame.image.load("assets/img/portal1.png").convert_alpha(),
+            pygame.image.load("assets/img/portal2.png").convert_alpha(),
+            pygame.image.load("assets/img/portal3.png").convert_alpha(),
+            pygame.image.load("assets/img/portal4.png").convert_alpha(),
+            pygame.image.load("assets/img/portal5.png").convert_alpha(),
+            pygame.image.load("assets/img/portal6.png").convert_alpha(),
+            pygame.image.load("assets/img/portal7.png").convert_alpha(),
+            pygame.image.load("assets/img/portal8.png").convert_alpha(),
+        ]
+
+        self.animation_index = 0
+        self.image = self.frames[self.animation_index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+
+        self.animation_speed = 0.2
+
+    def update(self):
+        self.animation_index += self.animation_speed
+        if self.animation_index >= len(self.frames):
+            self.animation_index = 0
+
+        self.image = self.frames[int(self.animation_index)]
+
+        if pygame.sprite.collide_rect(self, self.game.player):
+            self.game.next_level()
+
+
+
+class Dragon(pygame.sprite.Sprite):
+    def __init__(self, game, x, y):
+        self.game = game
+        self._layer = enemyLayer
+        self.groups = game.all_sprites, game.enemies
+        pygame.sprite.Sprite.__init__(self, self.groups)
+
+        self.x = x * tileSize
+        self.y = y * tileSize
+
+        self.width = tileSize * 8
+        self.height = tileSize * 8
+
+        self.frames = [
+            pygame.image.load("assets/img/dragon1.png").convert_alpha(),
+            pygame.image.load("assets/img/dragon2.png").convert_alpha(),
+            pygame.image.load("assets/img/dragon3.png").convert_alpha()
+        ]
+        self.animation_index = 0
+        self.image = pygame.transform.scale(self.frames[self.animation_index], (self.width, self.height))
+        self.image_original = self.image.copy()
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+        self.speed = 1
+        self.health = 80
+        self.damaged = False
+        self.damage_timer = 0
+        self.attack_cooldown = 1500
+        self.last_attack_time = 0
+
+        self.fireball_cooldown = 3000
+        self.last_fireball_time = 0
+
+    def animate(self):
+        self.animation_index += 0.1
+        if self.animation_index >= len(self.frames):
+            self.animation_index = 0
+        self.image = pygame.transform.scale(self.frames[int(self.animation_index)], (self.width, self.height))
+
+    def take_damage(self, amount):
+        self.health -= amount
+        self.damaged = True
+        self.damage_timer = pygame.time.get_ticks()
+
+        self.image.fill((255, 0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+        if self.health <= 0:
+            self.kill()
+
+    def shoot_fireball(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_fireball_time >= self.fireball_cooldown:
+            self.last_fireball_time = current_time
+            player_x, player_y = self.game.player.rect.center
+            fireball = Fireball(self.game, self.rect.centerx, self.rect.centery, player_x, player_y)
+
+
+    def attack_player(self):
+        if pygame.sprite.collide_rect(self, self.game.player):
+            current_time = pygame.time.get_ticks()
+            if current_time - self.last_attack_time >= self.attack_cooldown:
+                self.game.player.take_damage(2)
+                self.last_attack_time = current_time
+
+    def update(self):
+        self.animate()
+
+        if self.damaged:
+            if pygame.time.get_ticks() - self.damage_timer > 200:
+                self.damaged = False
+                self.image = pygame.transform.scale(self.frames[int(self.animation_index)], (self.width, self.height))
+
+        player_center = self.game.player.rect.center
+        dragon_center = self.rect.center
+
+        if player_center[0] > dragon_center[0]:
+            self.rect.x += self.speed
+        elif player_center[0] < dragon_center[0]:
+            self.rect.x -= self.speed
+
+        if player_center[1] > dragon_center[1]:
+            self.rect.y += self.speed
+        elif player_center[1] < dragon_center[1]:
+            self.rect.y -= self.speed
+
+        self.attack_player()
+
+        self.shoot_fireball()
+
+
+class Fireball(pygame.sprite.Sprite):
+    def __init__(self, game, x, y, target_x, target_y):
+        self.game = game
+        self._layer = skillLayer
+        self.groups = game.all_sprites, game.attacks
+        pygame.sprite.Sprite.__init__(self, self.groups)
+
+        self.image = pygame.image.load("assets/img/fireball.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (tileSize, tileSize))  # Scale to tile size
+        self.rect = self.image.get_rect(center=(x, y))
+
+        self.speed = 5
+
+        angle = math.atan2(target_y - y, target_x - x)
+        self.dx = math.cos(angle) * self.speed
+        self.dy = math.sin(angle) * self.speed
+
+    def update(self):
+        self.rect.x += self.dx
+        self.rect.y += self.dy
+
+        if pygame.sprite.collide_rect(self, self.game.player):
+            self.game.player.take_damage(2)
+            print("Player hit by fireball!")
+            self.kill()
+
+        if (
+            self.rect.right < 0 or self.rect.left > screenWidth or
+            self.rect.bottom < 0 or self.rect.top > screenHeight
+        ):
+            self.kill()
